@@ -28,10 +28,6 @@ function confidence = computeBetaConfidence(DataSamples, beta)
 n_trials = DataSamples.i_trial(end);
 n_samples = length(DataSamples.i_trial);
 
-% Define the standard deviation at step 0
-std_0 = sqrt(var(abs(DataSamples.value_left(4:4:end) - ...
-    DataSamples.value_right(4:4:end)), 1));
-
 % Initialize confidence
 confidence = NaN(1, n_samples);
 
@@ -43,17 +39,12 @@ for i_trial = 1:n_trials
         % Define sample index
         i_sample = (i_trial - 1) * 4 + i_step;
         % Standard deviation of values only depends on the current step
-        standard_deviation = 1 / ((1 / std_0) + beta * i_step);
-        if i_step < 4
-            % Confidence depends on value estimates and standard deviation
-            confidence(i_sample) = VBA_sigmoid(...
-                (pi * abs(DataSamples.value_left(i_sample) - ...
-                DataSamples.value_right(i_sample))) / ...
-                sqrt(3 * standard_deviation));
-        else
-            % Confidence equals 1
-            confidence(i_sample) = 1;
-        end
+        standard_deviation = sqrt(beta * (4 - i_step));
+        % Confidence depends on value estimates and standard deviation
+        confidence(i_sample) = VBA_sigmoid(...
+            (pi * abs(DataSamples.value_left(i_sample) - ...
+            DataSamples.value_right(i_sample))) / ...
+            sqrt(3 * standard_deviation));
     end
 end
 
