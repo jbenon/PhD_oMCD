@@ -1,21 +1,19 @@
 % Computes confidence at each sample approximated by estimating the amount
 % of variance on value estimates at each trial step.
 
-function confidence = computeBetaConfidence(DataSamples, beta)
+function confidence = computeBetaConfidence(value_left, value_right, ...
+    beta, i_step)
 % Parameters
 % ----------
-% DataSamples: structure
-%   .i_trial: [1 x n_samples] double
-%       Trial index.
-%   .i_step: [1 x n_samples] double
-%       Trial index.
-%   .value_left: [1 x n_samples] double
-%       Estimated value of the left option.
-%   .value_right: [1 x n_samples] double
-%       Estimated value of the right option.
+% value_left: [1 x n_samples] double
+%   Estimated value of the left option.
+% value_right: [1 x n_samples] double
+%   Estimated value of the right option.
 % beta: double
-%   Linear coefficient linking precision on value estimated with trial
-%   step.
+%   Linear coefficient linking variance on absolute value difference with
+%   trial step.
+% i_step: [1 x 1] or [1 x n_samples] double
+%   Step within the ongoing trial.
 %
 % Outputs
 % -------
@@ -23,29 +21,15 @@ function confidence = computeBetaConfidence(DataSamples, beta)
 %   Probability that the option being currently the best stays the best at
 %   the end of trial.
 
+% Standard deviation of values only depends on the current step
+standard_deviation = sqrt(beta * (4 - i_step));
 
-% Get samples dimensions
-n_trials = DataSamples.i_trial(end);
-n_samples = length(DataSamples.i_trial);
+% Confidence depends on value estimates and standard deviation
+confidence = VBA_sigmoid(...
+    (pi * abs(value_left - value_right)) ./ ...
+    sqrt(3 * standard_deviation));
 
-% Initialize confidence
-confidence = NaN(1, n_samples);
-
-% === Loop over trials === %
-for i_trial = 1:n_trials
-
-    % === Loop over trial steps === %
-    for i_step = 1:4
-        % Define sample index
-        i_sample = (i_trial - 1) * 4 + i_step;
-        % Standard deviation of values only depends on the current step
-        standard_deviation = sqrt(beta * (4 - i_step));
-        % Confidence depends on value estimates and standard deviation
-        confidence(i_sample) = VBA_sigmoid(...
-            (pi * abs(DataSamples.value_left(i_sample) - ...
-            DataSamples.value_right(i_sample))) / ...
-            sqrt(3 * standard_deviation));
-    end
-end
+% On the fourth step, set confidence manually to avoid problems due to 0/0
+confidence(i_step == 4) = 1;
 
 end
