@@ -35,7 +35,6 @@ function [f_beta, beta] = computeVarianceApproximationBeta(CueSamples, ...
 
 % Get samples dimensions
 n_trials = CueSamples.i_trial(end);
-n_samples = length(CueSamples.i_trial);
 
 % === Compute precision === %
 
@@ -60,8 +59,8 @@ beta = mdl.Coefficients.Estimate(1);
 
 f_beta = figure;
 plot(mdl);
-xticks(0:4);
-text(1.5, 500, sprintf("Beta = %0.4f", beta), ...
+xticks(0:3);
+text(1.5, 0.03, sprintf("Beta = %0.4f", beta), ...
     "Color", "r", "HorizontalAlignment", "center");
 
 

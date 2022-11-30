@@ -13,9 +13,8 @@ DataSamples = expandCueSamples(CueSamples);
 % Get sampling information
 n_trials = DataSamples.i_trial(end);
 n_samples = length(DataSamples.i_trial);
-fprintf("\nFinished samples generation.\n");
 
-% === Compute empirical confidence === %
+% === Compute empirical value of control === %
 
 % Get samples internal states
 state = getSamplesInternalStates(CueSamples);
@@ -24,61 +23,49 @@ best_option = getTrialBestOption(DataSamples);
 % Compute empirical confidence
 emp_confidence = computeEmpiricalConfidence(DataSamples, state, ...
     best_option);
-fprintf("Computed empirical confidence.\n");
+% Define the effort parameter
+alpha = 0.1;
+% Define samples steps
+all_i_step = repmat(1:4, 1, n_trials);
+% Compute empirical value of control
+emp_value_control = emp_confidence - alpha * all_i_step;
 
-% === Compute Beta confidence === %
+% === Prepare approximation === %
 
 % Compute the beta used for approximation
-[~, beta] = computePrecisionApproximationBeta(CueSamples, DataSamples);
-% Approximate the confidence
-beta_confidence = computeBetaConfidence(DataSamples, beta);
-fprintf("Computed Beta confidence.\n");
-
-% === Compute Beta Gamma confidence === %
-
+[~, beta] = computeVarianceApproximationBeta(CueSamples, DataSamples);
 % Compute the gamma used for approximation
 gamma = computeDifferenceApproximationGamma(DataSamples);
 % Approximate the confidence
-[beta_gamma_diff_value, beta_gamma_confidence] = ...
-    computeBetaGammaConfidence(DataSamples, beta, gamma);
+beta_confidence = computeBetaConfidence(...
+    DataSamples.value_left, DataSamples.value_right, beta, all_i_step);
+% Approximate the value of control
+beta_value_control = beta_confidence - alpha * all_i_step;
 
-% === Compute expected value of control === %
+% === Compute decision thresholds === %
 
-% Define the effort parameter
-alpha = 0.1;
-% Compute value of control at each sample
-emp_value_control = emp_confidence - alpha * CueSamples.i_step;
-beta_value_control = beta_confidence - alpha * CueSamples.i_step;
-beta_gamma_value_control = beta_gamma_confidence - ...
-    alpha * CueSamples.i_step;
-% Compute the threshold regarding expected value of control at each sample
-emp_w_exp_value_control = computeExpectedValueOfControl(CueSamples, ...
-    emp_value_control);
-beta_w_exp_value_control = computeExpectedValueOfControl(CueSamples, ...
-    beta_value_control);
-beta_gamma_w_exp_value_control = computeExpectedValueOfControl(CueSamples, ...
-    beta_gamma_value_control);
-fprintf("Computed expected values of control.\n");
+% Empirical threshold
+emp_w_exp_value_control = predictExpectedValueOfControl(...
+    emp_confidence, alpha);
+% Approximation thresholds
+beta_w_exp_value_control = predictExpectedValueOfControl(...
+    beta_confidence, alpha);
+beta_gamma_w_exp_value_control = predictExpectedValueOfControlGamma(...
+    DataSamples.value_left, DataSamples.value_right, alpha, beta, gamma);
 
-% === Compute decision step distributions === %
+% === Compute decision steps === %
 
 % Compute decision step distribution according to the online MCD
-emp_decision_step = defineDecisionStep(CueSamples, emp_value_control, ...
+emp_decision_step = defineDecisionStep(emp_value_control, ...
     emp_w_exp_value_control);
-beta_decision_step = defineDecisionStep(CueSamples, beta_value_control, ...
+beta_decision_step = defineDecisionStep(beta_value_control, ...
     beta_w_exp_value_control);
-beta_gamma_decision_step = defineDecisionStep(CueSamples, ...
-    beta_gamma_value_control, beta_gamma_w_exp_value_control);
+beta_gamma_decision_step = defineDecisionStep(beta_value_control, ...
+    beta_gamma_w_exp_value_control);
 % Compute the best possible decision step distribution (oracle)
-emp_oracle_decision_step = defineOracleDecisionStep(CueSamples, ...
-    emp_value_control);
-beta_oracle_decision_step = defineOracleDecisionStep(CueSamples, ...
-    beta_value_control);
-beta_gamma_oracle_decision_step = defineOracleDecisionStep(CueSamples, ...
-    beta_gamma_value_control);
-fprintf("Computed decision step distributions.\n");
+oracle_decision_step = defineOracleDecisionStep(emp_value_control);
 
-% === Compute decision value of control distributions === %
+% === Compute value of control at the decision time === %
 
 % Online implementations
 emp_decision_value_control = getDecisionValueOfControl(...
@@ -88,41 +75,33 @@ beta_decision_value_control = getDecisionValueOfControl(...
 beta_gamma_decision_value_control = getDecisionValueOfControl(...
     beta_gamma_decision_step, emp_value_control);
 % Oracle implementations
-emp_oracle_decision_value_control = getDecisionValueOfControl(...
-    emp_oracle_decision_step, emp_value_control);
-beta_oracle_decision_value_control = getDecisionValueOfControl(...
-    beta_oracle_decision_step, emp_value_control);
-beta_gamma_oracle_decision_value_control = getDecisionValueOfControl(...
-    beta_gamma_oracle_decision_step, emp_value_control);
-fprintf("Computed decision value of control distributions.\n");
+oracle_decision_value_control = getDecisionValueOfControl(...
+    oracle_decision_step, emp_value_control);
 
 
 %% Compare decision step distributions
 
 % Initialize figure
-f_distribution_step = figure("Position", [50, 50, 1200, 600]);
+f_distribution_step = figure("Position", [50, 50, 1400, 400]);
 
 % Gather information
 decision_step = {emp_decision_step, beta_decision_step, ...
-    beta_gamma_decision_step, emp_oracle_decision_step, ...
-    beta_oracle_decision_step, beta_gamma_oracle_decision_step};
+    beta_gamma_decision_step, oracle_decision_step};
 all_title = ["oMCD with empirical confidence", ...
-    "oMCD with \beta confidence", ...
-    "oMCD with \beta \gamma confidence", ...
-    "Oracle with empirical confidence", ...
-    "Oracle with \beta confidence", ...
-    "Oracle with \beta \gamma confidence"];
+    "oMCD with \beta approximation", ...
+    "oMCD with \beta \gamma approximation", ...
+    "Oracle"];
 
 % === Loop over subplots === %
-for i_plot = 1:6
+for i_plot = 1:length(decision_step)
     % Define subplot
-    subplot(2, 3, i_plot);
+    subplot(1, length(decision_step), i_plot);
     % Plot histogram
     h = histogram(decision_step{i_plot}, "Normalization", "probability");
     % Set aesthetics
     xlabel("Decision step");
     xticks(1:4);
-    ylim([0, 0.7]);
+    ylim([0, 0.85]);
     title(all_title(i_plot));
     % Compute distribution entropy
     entropy = - sum (h.Values .* log(h.Values));
@@ -145,7 +124,7 @@ beta_gamma_prop_predicted = NaN(4, 4);
 % === Loop over best decision step === %
 for i_best_step = 1:4
     % Select the trials where the best decision was indeed this step
-    select_best_step = (emp_oracle_decision_step == i_best_step);
+    select_best_step = (oracle_decision_step == i_best_step);
     
     % === Loop over predicyed decision step === %
     for i_pred_step = 1:4
@@ -182,8 +161,8 @@ prop_predicted = {emp_prop_predicted, beta_prop_predicted, ...
     beta_gamma_prop_predicted};
 all_yaxis = ...
     ["Decision step predicted by oMCD with empirical confidence", ...
-    "Decision step predicted by oMCD with \beta confidence", ...
-    "Decision step predicted by oMCD with \beta \gamma confidence"];
+    "Decision step predicted by oMCD with \beta approximation", ...
+    "Decision step predicted by oMCD with \beta \gamma approximation"];
 % Compute distance to identity
 dist_id = NaN(1,3);
 weight_kernel = ...
@@ -202,7 +181,7 @@ for i_plot = 1:3
     % Plot heatmap
     imagesc(prop_predicted{i_plot});
     % Set axis aesthetics
-    xlabel("Best decision step");
+    xlabel("Oracle decision step");
     ylabel(all_yaxis(i_plot));
     xticks(1:4);
     yticks(1:4);
@@ -248,7 +227,7 @@ for i_plot = 1:3
     plot([0, 1], [0, 1], "k--");
     hold on;
     % Scatter plot
-    s = scatter(emp_oracle_decision_value_control, ...
+    s = scatter(oracle_decision_value_control, ...
         decision_value_control{i_plot}, ...
         "filled");
     % Set axis aesthetics
@@ -262,7 +241,7 @@ for i_plot = 1:3
     row_decision_step = dataTipTextRow("Online decision step", ...
         decision_step{i_plot});
     row_best_decision_step = dataTipTextRow("Oracle decision step", ...
-        emp_oracle_decision_step);
+        oracle_decision_step);
     % Set datatip rows
     s.DataTipTemplate.DataTipRows(1).Label = "Oracle value of control";
     s.DataTipTemplate.DataTipRows(2).Label = "Online value of control";
@@ -274,7 +253,7 @@ for i_plot = 1:3
     % Define subplot
     subplot(2, 3, i_plot + 3);
     % Compute the difference in performance compared to the oracle
-    diff_decision_value_control = emp_oracle_decision_value_control - ...
+    diff_decision_value_control = oracle_decision_value_control - ...
         decision_value_control{i_plot};
     % Cumulative plot
     cdfplot(diff_decision_value_control);

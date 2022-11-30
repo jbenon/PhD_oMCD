@@ -4,8 +4,8 @@
 function [next_value] = predictNextGammaValues(value, gamma, n_simu)
 % Parameters
 % ----------
-% value: double
-%   Estimated value an option.
+% value: [1 x 1] or [1 x n_simu] double
+%   Estimated value an option. 
 % gamma: double
 %   Linear coefficient capturing how much the absolute value difference
 %   changes across time.

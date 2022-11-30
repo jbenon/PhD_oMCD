@@ -30,7 +30,7 @@ function w_exp_value_control = predictExpectedValueOfControl(...
 
 
 % Get sampling information
-n_samples = length(value_left);
+n_samples = length(confidence);
 n_trials = n_samples / 4;
 all_i_step = repmat(1:4, 1, n_trials);
 

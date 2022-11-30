@@ -21,13 +21,16 @@ function confidence = computeBetaConfidence(value_left, value_right, ...
 %   Probability that the option being currently the best stays the best at
 %   the end of trial.
 
-% Standard deviation of values only depends on the current step
-standard_deviation = sqrt(beta * (4 - i_step));
+% Variance of values only depends on the current step
+variance = beta * (4 - i_step);
+% variance_0 = var(abs(value_left(i_step == 4) - ...
+%     value_right(i_step == 4)), 1);
+% variance = 1 ./ ((1 / variance_0) + beta * i_step);
 
 % Confidence depends on value estimates and standard deviation
 confidence = VBA_sigmoid(...
     (pi * abs(value_left - value_right)) ./ ...
-    sqrt(3 * standard_deviation));
+    sqrt(3 * variance));
 
 % On the fourth step, set confidence manually to avoid problems due to 0/0
 confidence(i_step == 4) = 1;

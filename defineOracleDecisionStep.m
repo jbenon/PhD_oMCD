@@ -1,19 +1,9 @@
 % Returns the best decision step at each trial (step maximizing the value
 % of control).
 
-function decision_step = defineOracleDecisionStep(CueSamples, ...
-    value_control)
+function decision_step = defineOracleDecisionStep(value_control)
 % Parameters
 % ----------
-% CueSamples: structure
-%   .i_trial: [1 x n_samples] double
-%       Trial index.
-%   .i_step: [1 x n_samples] double
-%       Step index.
-%   .cue_pos: [1 x n_samples] double
-%       Position (1-4) of the sampled cue.
-%   .cue_rank: [1 x n_samples] double
-%       Rank (1-5) of the sampled cue.
 % value_control: [1 x n_samples] double
 %   Value of control of each sample (confidence - invested sampling
 %   resources).
@@ -25,7 +15,7 @@ function decision_step = defineOracleDecisionStep(CueSamples, ...
 
 
 % Get sampling information
-n_trials = CueSamples.i_trial(end);
+n_trials = length(value_control) / 4;
 
 % Initialize output
 decision_step = NaN(1, n_trials);
