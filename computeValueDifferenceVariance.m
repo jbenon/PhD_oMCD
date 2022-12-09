@@ -48,11 +48,11 @@ for i_trial = 1:n_trials
         select_trials = DataSamples.i_trial(select_samples);
         % Select the last step of trials containing the same state
         select_final_step = select_trials * 4;
-        % Get the distribution of absolute value difference
-        abs_value_diff = abs(DataSamples.value_left(select_final_step) - ...
-            DataSamples.value_right(select_final_step));
+        % Get the distribution of value difference
+        value_diff = DataSamples.value_left(select_final_step) - ...
+            DataSamples.value_right(select_final_step);
         % Compute the variance of the distribution
-        variance(i_sample) = var(abs_value_diff, 1);
+        variance(i_sample) = var(value_diff, 1);
     end
 end
 

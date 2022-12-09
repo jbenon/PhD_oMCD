@@ -79,7 +79,7 @@ for i_trial = 1:n_trials
             % If this is the last step: confidence = 100 %
             if i_step == 4
                 confidence(i_sample) = 1;
-            % Else, compute the expected confidence
+            % Else, compute the expected confidence (= 50 %)
             else
                 confidence(i_sample) = ...
                     mean([prop_left_good, prop_right_good]);

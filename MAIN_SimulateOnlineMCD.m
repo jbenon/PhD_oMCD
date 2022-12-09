@@ -49,7 +49,7 @@ emp_w_exp_value_control = predictExpectedValueOfControl(...
 % Approximation threshold with beta only
 beta_w_exp_value_control = predictExpectedValueOfControl(...
     beta_confidence, alpha);
-% Full oMCD approximation
+%% Full oMCD approximation
 all_value_diff = -2:0.001:2;
 MAIN_computeAllOptimalBenefit_oMCD;
 beta_gamma_w_exp_value_control = NaN(1, n_samples);

@@ -29,7 +29,7 @@ function [f_beta, beta] = computeVarianceApproximationBeta(CueSamples, ...
 % f_beta: figure
 %   Plot of the linear model used to compute beta.
 % beta: double
-%   Linear coefficient linking variance on the absolute difference between
+%   Linear coefficient linking variance on the difference between
 %   estimated values with trial step.
 
 
@@ -51,7 +51,7 @@ time_steps = repmat(3:-1:0, 1, n_trials);
 mdl = fitlm(time_steps', variance', ...
     "linear", "Intercept", false, ...
     "VarNames", ...
-    ["Steps from horizon (4-t)", "Variance on |V_left - V_right|"]);
+    ["Steps from horizon (4-t)", "Variance on V_left - V_right"]);
 % Extract the beta
 beta = mdl.Coefficients.Estimate(1);
 

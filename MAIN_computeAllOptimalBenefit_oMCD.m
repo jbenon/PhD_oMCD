@@ -1,8 +1,8 @@
 all_value_diff = -2:0.001:2;
 
 % Step 4
-opt_benefit_step4 = 1 - alpha * 4;
-threshold_4 = 0.5 - alpha * 4;
+opt_benefit_step4 = (1 - alpha * 4) * ones(size(all_value_diff));
+benefit_stop4 = opt_benefit_step4 * ones(size(all_value_diff));
 
 % Step 3
 benefit_stop3 = VBA_sigmoid((pi * abs(all_value_diff)) ./ ...
@@ -14,7 +14,7 @@ benefit_stop3 = VBA_sigmoid((pi * abs(all_value_diff)) ./ ...
 %     exp_abs_value_diff_step4;
 % lambda = 1 / sqrt(3 * 2 * beta * (4 - 4));
 exp_benefit_stop_step4 = 1 - alpha * 4;
-opt_benefit_step3 = max(benefit_stop3, exp_benefit_stop_step4);
+opt_benefit_step3 = max(benefit_stop4, exp_benefit_stop_step4);
 
 % Step 2
 benefit_stop2 = VBA_sigmoid((pi * abs(all_value_diff)) ./ ...

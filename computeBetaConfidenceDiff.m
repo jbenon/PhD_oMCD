@@ -1,14 +1,12 @@
 % Computes confidence at each sample approximated by estimating the amount
 % of variance on value estimates at each trial step.
 
-function confidence = computeBetaConfidence(value_left, value_right, ...
+function confidence = computeBetaConfidenceDiff(value_diff, ...
     beta, i_step)
 % Parameters
 % ----------
-% value_left: [1 x n_samples] double
-%   Estimated value of the left option.
-% value_right: [1 x n_samples] double
-%   Estimated value of the right option.
+% value_diff: [1 x n_samples] double
+%   Difference in estimated values.
 % beta: double
 %   Linear coefficient linking variance on absolute value difference with
 %   trial step.
@@ -26,10 +24,8 @@ variance = beta * (4 - i_step);
 
 % Confidence depends on value estimates and standard deviation
 confidence = VBA_sigmoid(...
-    (pi * abs(value_left - value_right)) ./ ...
+    (pi * abs(value_diff)) ./ ...
     sqrt(3 * variance));
 
 % On the fourth step, set confidence manually to avoid problems due to 0/0
 confidence(i_step == 4) = 1;
-
-end

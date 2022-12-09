@@ -18,8 +18,8 @@ function [f_gamma, gamma] = computeDifferenceApproximationGamma(...
 % Outputs
 % -------
 % gamma: double
-%   Coefficient capturing how much the absolute value difference changes
-%   across time.
+%   Coefficient capturing how much the value difference changes across
+%   time.
 
 
 % Get samples dimensions
