@@ -29,9 +29,8 @@ for i_trial = 1:n_trials
     % Define the trial indices
     i_start_trial = (i_trial - 1) * 4 + 1;
     i_samples_trial = i_start_trial:(i_start_trial + 3);
-    % Find steps when VC(t) > EVC(t+1)
-    stop_steps = find(value_control(i_samples_trial) > ...
+    % Find the first step when VC(t) >= EVC(t+1)
+    decision_step(i_trial) = find(...
+        value_control(i_samples_trial) >= ...
         w_exp_value_control(i_samples_trial), 1);
-    % Stop on the first step found
-    decision_step(i_trial) = stop_steps;
 end

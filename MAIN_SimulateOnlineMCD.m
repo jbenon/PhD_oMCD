@@ -25,33 +25,60 @@ emp_confidence = computeEmpiricalConfidence(DataSamples, state, ...
     best_option);
 % Define the effort parameter
 alpha = 0.1;
-% Define samples steps
-all_i_step = repmat(1:4, 1, n_trials);
 % Compute empirical value of control
-emp_value_control = emp_confidence - alpha * all_i_step;
+emp_value_control = emp_confidence - alpha * DataSamples.i_step;
 
 % === Prepare approximation === %
 
 % Compute the beta used for approximation
 [~, beta] = computeVarianceApproximationBeta(CueSamples, DataSamples);
 % Compute the gamma used for approximation
-gamma = computeDifferenceApproximationGamma(DataSamples);
+[~, gamma] = computeDifferenceApproximationGamma(DataSamples);
 % Approximate the confidence
 beta_confidence = computeBetaConfidence(...
-    DataSamples.value_left, DataSamples.value_right, beta, all_i_step);
+    DataSamples.value_left, DataSamples.value_right, ...
+    beta, DataSamples.i_step);
 % Approximate the value of control
-beta_value_control = beta_confidence - alpha * all_i_step;
+beta_value_control = beta_confidence - alpha * DataSamples.i_step;
 
 % === Compute decision thresholds === %
 
 % Empirical threshold
 emp_w_exp_value_control = predictExpectedValueOfControl(...
     emp_confidence, alpha);
-% Approximation thresholds
+% Approximation threshold with beta only
 beta_w_exp_value_control = predictExpectedValueOfControl(...
     beta_confidence, alpha);
-beta_gamma_w_exp_value_control = predictExpectedValueOfControlGamma(...
-    DataSamples.value_left, DataSamples.value_right, alpha, beta, gamma);
+% Full oMCD approximation
+all_value_diff = -2:0.001:2;
+MAIN_computeAllOptimalBenefit_oMCD;
+beta_gamma_w_exp_value_control = NaN(1, n_samples);
+for i_trial = 1:n_trials
+    for i_step = 1:4
+        i_sample = (i_trial - 1) * 4 + i_step;
+        % Find corresponding value difference
+        value_diff = DataSamples.value_left(i_sample) - DataSamples.value_right(i_sample);
+        [~, i_value_diff] = min(abs(all_value_diff - value_diff));
+        % Get corresponding threshold
+        switch i_step
+            case 1
+                beta_gamma_w_exp_value_control(i_sample) = ...
+                    exp_opt_benefit_step2(i_value_diff);
+            case 2
+                beta_gamma_w_exp_value_control(i_sample) = ...
+                    exp_opt_benefit_step3(i_value_diff);
+            case 3
+                beta_gamma_w_exp_value_control(i_sample) = ...
+                    opt_benefit_step3(i_value_diff);
+            case 4
+                beta_gamma_w_exp_value_control(i_sample) = ...
+                    opt_benefit_step4;
+        end
+    end
+end
+%%
+% beta_gamma_w_exp_value_control = predictExpectedValueOfControlGamma(...
+%     DataSamples.value_left, DataSamples.value_right, alpha, beta, gamma);
 
 % === Compute decision steps === %
 
@@ -274,3 +301,185 @@ for i_plot = 1:3
     % Remove subplot title
     title("");
 end
+
+
+%% Compare the empirical value of control to the Beta approximation
+
+figure("Position", [50, 50, 700, 700]);
+
+% === Loop over steps === %
+for i_step = 1:4
+    % Define subplot
+    subplot(2, 2, i_step);
+
+    % Scatter plot of values of control
+    scatter(emp_value_control(DataSamples.i_step == i_step), ...
+        beta_value_control(DataSamples.i_step == i_step), ...
+        "filled", "MarkerFaceAlpha", 0.01);
+    % Identity line
+    hold on;
+    plot([0, 1], [0, 1], "k--");
+    % Subplot aesthetics
+    title(sprintf("Step n°%d", i_step));
+    % Axis aesthetics
+    xlim([0.15, 0.85]);
+    ylim([0.15, 0.85]);
+    axis square
+    xlabel("Empirical value of control")
+    ylabel("Approximated value of control using \beta")
+end
+
+
+%% Look at the evolution of the decision threshold over steps
+
+figure("Position", [50, 50, 1200, 400]);
+
+% Gather information
+threshold = {emp_w_exp_value_control, beta_w_exp_value_control, ...
+    beta_gamma_w_exp_value_control};
+all_title = ["No approximation", "\beta approximation", ...
+    "\beta \gamma approximation"];
+
+% === Loop through methods === %
+for i_plot = 1:length(threshold)
+    % Define subplot
+    subplot(1, 3, i_plot);
+    % Plot
+    plot(reshape(threshold{i_plot}, 4, []), ...
+        "o-", "Color", [0, 0, 0, 0.008]);
+    % Axis aesthetics
+    xticks(1:4);
+    ylim([0.55, 0.75]);
+    xlabel("Step");
+    ylabel("Decision threshold");
+    % Plot asthetics
+    title(all_title(i_plot));
+end
+
+
+%% Compare the decision thresholds of the three methods
+
+figure("Position", [50, 50, 1200, 400]);
+
+% Gather information
+all_x_thresholds = {emp_w_exp_value_control, emp_w_exp_value_control, ...
+    beta_w_exp_value_control};
+all_y_thresholds = {beta_w_exp_value_control, ...
+    beta_gamma_w_exp_value_control, beta_gamma_w_exp_value_control};
+all_x_labels = ["Decision threshold without approximation", ...
+    "Decision threshold without approximation", ...
+    "Decision threshold with \beta approximation"];
+all_y_labels = ["Decision threshold with \beta approximation", ...
+    "Decision threshold with \beta \gamma approximation", ...
+    "Decision threshold with \beta \gamma approximation"];
+
+% === Loop through methods === %
+for i_plot = 1:length(all_x_thresholds)
+    % Define the subplot
+    subplot(1, length(all_x_thresholds), i_plot);
+    % Plot
+    scatter(all_x_thresholds{i_plot}, all_y_thresholds{i_plot}, ...
+        "filled", "MarkerFaceAlpha", 0.01);
+    % Identity line
+    hold on;
+    plot([0, 1], [0, 1], "k--");
+    % Axis asthetics
+    xlim([0.55, 0.75]);
+    ylim([0.55, 0.75]);
+    xlabel(all_x_labels(i_plot));
+    ylabel(all_y_labels(i_plot));
+    axis square;
+end
+
+
+%% Look at the evolution of confidence over steps
+
+f_confidence_steps = figure("Position", [50, 50, 1000, 400]);
+
+% Enable datatips
+datacursormode(f_confidence_steps, "on");
+
+% Gather information
+confidence = {emp_confidence, beta_confidence};
+all_title = ["No approximation", "\beta approximation"];
+
+% === Loop through methods === %
+for i_plot = 1:length(confidence)
+    % Define subplot
+    subplot(1, length(confidence), i_plot);
+    % Plot
+    p = plot(reshape(confidence{i_plot}, 4, []), ...
+        "o-", "Color", [0, 0, 0, 0.008]);
+    % Axis aesthetics
+    xticks(1:4);
+    ylim([0.45, 1]);
+    xlabel("Step");
+    ylabel("Confidence");
+    % Plot asthetics
+    title(all_title(i_plot));
+    for i_trial = 1:n_trials
+        % Create datatip rows
+        row_i_trial = dataTipTextRow("Trial n°", repelem(i_trial, 4));
+        % Set datatip rows
+        p(i_trial).DataTipTemplate.DataTipRows(1).Label = "Step";
+        p(i_trial).DataTipTemplate.DataTipRows(2).Label = "Confidence";
+        p(i_trial).DataTipTemplate.DataTipRows(3) = row_i_trial;
+    end
+end
+
+
+%% Look at the decision threshold for varying value differences, using beta and beta gamma approximation
+
+all_value_diff = -2:0.001:2;
+
+figure("Position", [50, 50, 900, 900]);
+
+% Step 1
+subplot(2, 2, 1)
+plot(all_value_diff, VBA_sigmoid((pi * abs(all_value_diff)) ./ ...
+    sqrt(3 * 2 * beta * (4 - 1))) - alpha * 1);
+hold on;
+plot(all_value_diff, exp_opt_benefit_step2);
+legend(["Value of control", "Expected optimal discounted benefit at t = 2"], ...
+    "Location", "south");
+xlim([-1, 1]);
+ylim([0.1, 0.9]);
+xlabel("V_{left} - V_{right}");
+title("Step n°1");
+
+% Step 2
+subplot(2, 2, 2)
+plot(all_value_diff, VBA_sigmoid((pi * abs(all_value_diff)) ./ ...
+    sqrt(3 * 2 * beta * (4 - 2))) - alpha * 2);
+hold on;
+plot(all_value_diff, exp_opt_benefit_step3);
+legend(["Value of control", "Expected optimal discounted benefit at t = 3"], ...
+    "Location", "south");
+xlim([-1, 1]);
+ylim([0.1, 0.9]);
+xlabel("V_{left} - V_{right}");
+title("Step n°2");
+
+% Step 3
+subplot(2, 2, 3)
+plot(all_value_diff, VBA_sigmoid((pi * abs(all_value_diff)) ./ ...
+    sqrt(3 * 2 * beta * (4 - 3))) - alpha * 3);
+hold on;
+plot(all_value_diff, opt_benefit_step3);
+legend(["Value of control", "Optimal discounted benefit at t = 3"], ...
+    "Location", "south");
+xlim([-1, 1]);
+ylim([0.1, 0.9]);
+xlabel("V_{left} - V_{right}");
+title("Step n°3");
+
+% Step 4
+subplot(2, 2, 4)
+plot(all_value_diff, VBA_sigmoid((pi * abs(all_value_diff)) ./ ...
+    sqrt(3 * 2 * beta * (4 - 4))) - alpha * 4);
+legend(["Value of control"], ...
+    "Location", "south");
+xlim([-1, 1]);
+ylim([0.1, 0.9]);
+xlabel("V_{left} - V_{right}");
+title("Step n°4");

@@ -41,7 +41,7 @@ beta_confidence = computeBetaConfidence(DataSamples, beta);
 % === Compute Beta Gamma confidence === %
 
 % Compute the gamma used for approximation
-gamma = computeDifferenceApproximationGamma(DataSamples);
+[~, gamma] = computeDifferenceApproximationGamma(DataSamples);
 % Approximate the confidence
 [beta_gamma_diff_value, beta_gamma_confidence] = ...
     computeBetaGammaConfidence(DataSamples, beta, gamma);

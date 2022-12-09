@@ -23,10 +23,9 @@ function best_option = getTrialBestOption(DataSamples)
 
 % Get samples dimensions
 n_trials = DataSamples.i_trial(end);
-n_samples = length(DataSamples.i_trial);
 
 % Initialize output
-best_option = strings(1, n_samples);
+best_option = strings(1, n_trials);
 
 % === Loop over trials === %
 for i_trial = 1:n_trials

@@ -2,7 +2,7 @@
 % the currently best option stays the best option at the end of the trial.
 
 function confidence = computeEmpiricalConfidence(DataSamples, ...
-    states, best_option)
+    state, best_option)
 % Parameters
 % ----------
 % DataSamples: structure
@@ -14,7 +14,7 @@ function confidence = computeEmpiricalConfidence(DataSamples, ...
 %       Estimated value of the left option.
 %   .value_right: [1 x n_samples] double
 %       Estimated value of the right option.
-% states: [4 x n_samples] double
+% state: [4 x n_samples] double
 %   Each column describes the state of a sample: the known rank of the left
 %   probability, left magnitude, right probability and left magnitude. The
 %   unknown attributes are replaced with NaN.
@@ -37,7 +37,7 @@ n_samples = length(DataSamples.i_trial);
 confidence = NaN(1, n_samples);
 
 % Replaces the NaN by 0 to enable comparison between internal states
-states(isnan(states)) = 0;
+state(isnan(state)) = 0;
 
 % === Loop over trials === %
 for i_trial = 1:n_trials
@@ -50,14 +50,14 @@ for i_trial = 1:n_trials
         % === Gather the outcomes of trials with the same state === %
 
         % Find samples with the same state
-        select_samples = all((states == states(:, i_sample)));
+        select_samples = all((state == state(:, i_sample)));
         % Select trials containing the same state
-        select_trials = DataSamples.i_trial(select_samples);
+        i_select_trials = DataSamples.i_trial(select_samples);
         % Count the number of trials in the same state where each option
         % ended up being a good decision
-        n_left_good = sum(strcmp(best_option(select_trials), "left"));
-        n_right_good = sum(strcmp(best_option(select_trials), "right"));
-        n_both_good = sum(strcmp(best_option(select_trials), "both"));
+        n_left_good = sum(strcmp(best_option(i_select_trials), "left"));
+        n_right_good = sum(strcmp(best_option(i_select_trials), "right"));
+        n_both_good = sum(strcmp(best_option(i_select_trials), "both"));
         % Compute the proportion of trials in the same state where each
         % option ended up being a good decision 
         n_same_state = n_left_good + n_right_good + n_both_good;
