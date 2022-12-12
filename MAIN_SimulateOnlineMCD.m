@@ -49,9 +49,11 @@ emp_w_exp_value_control = predictExpectedValueOfControl(...
 % Approximation threshold with beta only
 beta_w_exp_value_control = predictExpectedValueOfControl(...
     beta_confidence, alpha);
-%% Full oMCD approximation
-all_value_diff = -2:0.001:2;
-MAIN_computeAllOptimalBenefit_oMCD;
+% Full oMCD approximation
+[all_value_diff, exp_optimal_benefit] = predictOptimalBenefit(...
+    alpha, beta, gamma);
+optimal_threshold = computeOptimalThreshold(all_value_diff, ...
+    exp_optimal_benefit, alpha, beta);
 beta_gamma_w_exp_value_control = NaN(1, n_samples);
 for i_trial = 1:n_trials
     for i_step = 1:4
@@ -60,25 +62,10 @@ for i_trial = 1:n_trials
         value_diff = DataSamples.value_left(i_sample) - DataSamples.value_right(i_sample);
         [~, i_value_diff] = min(abs(all_value_diff - value_diff));
         % Get corresponding threshold
-        switch i_step
-            case 1
-                beta_gamma_w_exp_value_control(i_sample) = ...
-                    exp_opt_benefit_step2(i_value_diff);
-            case 2
-                beta_gamma_w_exp_value_control(i_sample) = ...
-                    exp_opt_benefit_step3(i_value_diff);
-            case 3
-                beta_gamma_w_exp_value_control(i_sample) = ...
-                    opt_benefit_step3(i_value_diff);
-            case 4
-                beta_gamma_w_exp_value_control(i_sample) = ...
-                    opt_benefit_step4;
-        end
+        beta_gamma_w_exp_value_control(i_sample) = ...
+            exp_optimal_benefit(i_step, i_value_diff);
     end
 end
-%%
-% beta_gamma_w_exp_value_control = predictExpectedValueOfControlGamma(...
-%     DataSamples.value_left, DataSamples.value_right, alpha, beta, gamma);
 
 % === Compute decision steps === %
 
@@ -483,3 +470,36 @@ xlim([-1, 1]);
 ylim([0.1, 0.9]);
 xlabel("V_{left} - V_{right}");
 title("Step n°4");
+
+
+%% Heatmap visualizing predicted benefit of keeping sampling
+
+all_value = 0:0.001:1;
+[all_value_left, all_value_right] = meshgrid(all_value, all_value);
+
+figure;
+
+for i_step = 1:3
+
+    matrix_exp_optimal_benefit = NaN(length(all_value), length(all_value));
+    
+    for i_value_left = 1:length(all_value_left)
+        value_left = all_value_left(i_value_left); 
+    
+        for i_value_right = 1:length(all_value_right)
+            value_right = all_value_right(i_value_right);
+            value_diff = value_left - value_right;
+    
+           % Find the correct index in the optimal benefit 
+           [~, i_same_value_diff] = min(abs(all_value_diff - value_diff));
+           matrix_exp_optimal_benefit(i_value_left, i_value_right) = ...
+               exp_optimal_benefit(i_step, i_same_value_diff);
+        end
+    end
+
+    % plot
+    subplot(1, 3, i_step);
+    imagesc(matrix_exp_optimal_benefit);
+    clim([0.6, 0.8]);
+    axis square;
+end
